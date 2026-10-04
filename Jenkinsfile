@@ -1,5 +1,5 @@
 pipeline {
-  agent any
+  agent { label 'linux-agent' }
 
   environment {
     APP_VERSION = "1.0.${BUILD_NUMBER}"
