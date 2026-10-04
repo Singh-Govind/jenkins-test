@@ -2,9 +2,7 @@ pipeline {
   agent any
 
   environment {
-    APP_ENV     = 'staging'
     APP_VERSION = "1.0.${BUILD_NUMBER}"
-    API_KEY     = credentials('api-key')
   }
 
   stages {
@@ -20,21 +18,42 @@ pipeline {
       }
     }
 
-    stage('Secret check') {
+    stage('Deploy to Staging') {
       steps {
-        sh 'echo "Key is: $API_KEY"'
+        sh '''
+          mkdir -p /deploy/staging
+          sed "s/__ENV__/staging/; s/__VERSION__/$APP_VERSION/" index.html > /deploy/staging/index.html
+        '''
       }
     }
 
-    stage('Deploy') {
+    stage('Smoke test Staging') {
       steps {
-        sh 'sed "s/__ENV__/$APP_ENV/; s/__VERSION__/$APP_VERSION/" index.html > /deploy/index.html'
+        sh 'grep -q "Environment: staging" /deploy/staging/index.html && echo "Staging looks good"'
+      }
+    }
+
+    stage('Approval') {
+      steps {
+        timeout(time: 10, unit: 'MINUTES') {
+          input message: "Deploy ${APP_VERSION} to production?", ok: 'Deploy to prod'
+        }
+      }
+    }
+
+    stage('Deploy to Production') {
+      steps {
+        sh '''
+          mkdir -p /deploy/prod
+          sed "s/__ENV__/prod/; s/__VERSION__/$APP_VERSION/" index.html > /deploy/prod/index.html
+        '''
       }
     }
   }
 
   post {
-    success { echo 'Pipeline succeeded' }
+    success { echo "Released ${APP_VERSION} to production" }
     failure { echo 'Pipeline failed' }
+    aborted { echo 'Production deploy was not approved' }
   }
 }
