@@ -10,7 +10,7 @@ pipeline {
 
     stage('Test') {
       steps {
-        sh 'test -f index.html && echo "index.html exists"'
+        sh 'test -f missing.html && echo "missing.html exists"'
       }
     }
 
