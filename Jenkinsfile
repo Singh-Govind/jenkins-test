@@ -1,29 +1,22 @@
 pipeline {
   agent any
 
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-
-    stage('Test') {
-      steps {
-        sh 'test -f missing.html && echo "missing.html exists"'
-      }
-    }
-
-    stage('Deploy') {
-      steps {
-        sh 'cp index.html /deploy/index.html'
-        echo "Deployed build ${BUILD_NUMBER}"
-      }
-    }
+  environment {
+    APP_ENV     = 'staging'
+    APP_VERSION = "1.0.${BUILD_NUMBER}"
   }
 
-  post {
-    success { echo 'Pipeline succeeded' }
-    failure { echo 'Pipeline failed' }
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Test') {
+      steps { sh 'test -f index.html && echo "index.html exists"' }
+    }
+    stage('Deploy') {
+      steps {
+        sh 'sed "s/__ENV__/$APP_ENV/; s/__VERSION__/$APP_VERSION/" index.html > /deploy/index.html'
+      }
+    }
   }
 }
